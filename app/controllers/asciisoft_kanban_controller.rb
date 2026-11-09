@@ -62,6 +62,8 @@ class AsciisoftKanbanController < ApplicationController
   def card
     @journals = @issue.journals.visible.where.not(notes: [nil, '']).order(created_on: :desc).limit(5).to_a.reverse
     @allowed = status_changeable?(@issue) ? @issue.new_statuses_allowed_to(User.current) : []
+    @actual_cf = actual_field
+    @actual_value = @actual_cf && @issue.available_custom_fields.include?(@actual_cf) ? @issue.custom_field_value(@actual_cf).presence : nil
     render partial: 'asciisoft_kanban/popup', layout: false
   end
 
@@ -193,6 +195,15 @@ class AsciisoftKanbanController < ApplicationController
 
   def priority_rank(priority)
     PRIORITY_RANK[kb_priority_kind(priority)] || 3
+  end
+
+  # 실제 완료일 필드: asciisoft_portal 플러그인 설정을 따르고, 없으면 '완료일'
+  def actual_field
+    s = Setting.respond_to?(:plugin_asciisoft_portal) ? Setting.plugin_asciisoft_portal : nil
+    name = (s.is_a?(Hash) && (s['actual_field'] || s[:actual_field])).to_s.strip
+    IssueCustomField.find_by(name: name.presence || '완료일')
+  rescue StandardError
+    nil
   end
 
   def can_configure?

@@ -10,8 +10,10 @@
   <div><span><%= l(:field_author) %></span><b><%= @issue.author %></b></div>
   <div><span><%= l(:field_start_date) %></span><b><%= format_date(@issue.start_date) || '-' %></b></div>
   <div><span><%= l(:field_due_date) %></span><b><%= format_date(@issue.due_date) || '-' %></b></div>
+  <% if @actual_cf %>
+  <div><span><%= @actual_cf.name %></span><b><%= @actual_value ? format_date((Date.parse(@actual_value.to_s) rescue nil)) || @actual_value : '-' %></b></div>
+  <% end %>
   <div><span><%= l(:field_done_ratio) %></span><b><%= @issue.done_ratio %>%</b></div>
-  <div><span><%= l(:field_updated_on) %></span><b><%= format_time(@issue.updated_on) %></b></div>
 </div>
 <% if @allowed.any? %>
   <div class="kb-pop-status-box" aria-label="<%= l(:label_asciisoft_kanban_change_status) %>">
