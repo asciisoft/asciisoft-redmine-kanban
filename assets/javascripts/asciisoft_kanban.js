@@ -168,35 +168,67 @@
       if (card) openPopup(card.dataset.id);
     });
     if (popBg) {
+      var pend = { status: '', assignee: null };
+      function syncConfirm() {
+        var cf = $('.kb-pop-confirm', pop);
+        if (cf) cf.disabled = !(pend.status || pend.assignee !== null);
+      }
+      popBg.addEventListener('change', function (e) {
+        var sel = e.target.closest && e.target.closest('.kb-assign-select');
+        if (!sel) return;
+        var row = sel.closest('.kb-pop-assignee'), nm = $('.kb-assignee-name', row);
+        var orig = sel.getAttribute('data-orig');
+        pend.assignee = sel.value === orig ? null : sel.value;
+        if (nm) nm.textContent = sel.value === '0' ? '-' : sel.options[sel.selectedIndex].text;
+        row.classList.toggle('kb-changed', pend.assignee !== null);
+        syncConfirm();
+      });
       popBg.addEventListener('click', function (e) {
         if (e.target === popBg || e.target.closest('.kb-pop-close')) { closePopup(); return; }
+        // 담당자: 이름 또는 [선택]을 누르면 선택박스 표시
+        var pick = e.target.closest('.kb-assign-btn, .kb-assignee-name[role="button"]');
+        if (pick) {
+          var sel = $('.kb-assign-select', pick.closest('.kb-pop-assignee'));
+          if (sel) { if (!sel.hasAttribute('data-orig')) sel.setAttribute('data-orig', sel.value); sel.hidden = false; pick.closest('.kb-pop-assignee').classList.add('kb-editing'); sel.focus(); }
+          return;
+        }
         var st = e.target.closest('.kb-pop-st');
-        if (st) {                                                     // 상태를 고르기만 하고, [확인]을 눌러야 반영
+        if (st) {                                                     // 상태는 고르기만 하고 [확인]에서 함께 저장
           $$('.kb-pop-st', pop).forEach(function (b) { b.classList.remove('kb-sel'); });
           var same = st.classList.contains('kb-cur');
           if (!same) st.classList.add('kb-sel');
-          pop.dataset.pending = same ? '' : st.dataset.status;
-          var cf = $('.kb-pop-confirm', pop); if (cf) cf.disabled = same;
+          pend.status = same ? '' : st.dataset.status;
+          syncConfirm();
           return;
         }
         var ok = e.target.closest('.kb-pop-confirm');
-        if (!ok || ok.disabled || !pop.dataset.pending) return;
-        var sid = pop.dataset.pending, id = pop.dataset.id, card = $('.kb-card[data-id="' + id + '"]', board);
+        if (!ok || ok.disabled) return;
+        var id = pop.dataset.id, card = $('.kb-card[data-id="' + id + '"]', board);
+        var sid = pend.status || ok.dataset.status || (card && card.dataset.status) || '';
+        var data = { issue_id: id, status_id: sid };
+        if (pend.assignee !== null) data.assigned_to_id = pend.assignee;
         var lane = card ? card.closest('.kb-lane') : null;
-        var cell = lane ? $('.kb-cell[data-status="' + sid + '"]', lane) : null;
-        var order = cell ? $$('.kb-card', cell).map(function (c) { return c.dataset.id; }).concat([id]) : [id];
+        var tcell = lane && pend.status ? $('.kb-cell[data-status="' + pend.status + '"]', lane) : null;
+        if (tcell) data.order = $$('.kb-card', tcell).map(function (c) { return c.dataset.id; }).concat([id]);
         ok.disabled = true;
-        post(URL_MOVE, { issue_id: id, status_id: sid, order: order }).then(function (res) {
+        post(URL_MOVE, data).then(function (res) {
           if (!res.ok) { ok.disabled = false; toast(res.j.error || board.dataset.msgDenied, true); return; }
+          delete allowedCache[id];
+          if (SWIM === 'assignee' && pend.assignee !== null) { W.location.reload(); return; }   // 다른 담당자 줄로 이동
+          var newSid = String(res.j.status && res.j.status.id || sid);
+          var cell = lane ? $('.kb-cell[data-status="' + newSid + '"]', lane) : null;
           if (card && cell) {
-            cell.appendChild(card); card.dataset.status = sid;
+            if (card.parentNode !== cell) cell.appendChild(card);
+            card.dataset.status = newSid;
             if (res.j.html) { var tmp = D.createElement('div'); tmp.innerHTML = res.j.html.trim(); var fresh = tmp.firstElementChild; if (fresh) card.replaceWith(fresh); }
-            else card.classList.toggle('kb-is-closed', !!res.j.status.closed);
+            else card.classList.toggle('kb-is-closed', !!(res.j.status && res.j.status.closed));
           } else if (card) card.remove();                       // 숨긴 열로 옮긴 경우
-          delete allowedCache[id]; refreshCounts(); toast(board.dataset.msgSaved);
+          refreshCounts(); toast(board.dataset.msgSaved);
           openPopup(id);
         });
       });
+      var _open = openPopup;
+      openPopup = function (id) { pend = { status: '', assignee: null }; _open(id); };
     }
     D.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePopup(); closeConfig(); } });
 

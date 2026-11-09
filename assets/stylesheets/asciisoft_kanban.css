@@ -185,4 +185,15 @@ body.kb-dragging-on, body.kb-dragging-on * { cursor: grabbing !important; user-s
 .kb-pop-confirm:disabled { background: var(--kb-line2); color: #fff; box-shadow: none; cursor: not-allowed; }
 .kb-pop-foot .as-btn, .kb-pop-foot .as-btn-primary { display: inline-flex; align-items: center; padding: 8px 16px; border-radius: 10px; font-size: .8125rem; font-weight: 700; text-decoration: none; }
 .kb-pop-foot .as-btn { border: 1px solid var(--kb-line2); background: var(--kb-surface); color: var(--kb-text); }
-.kb-pop-foot .as-btn-primary, .kb-pop-foot a.kb-edit-btn { background: var(--kb-grad); color: #fff !important; border: 0; }
+.kb-pop-foot .as-btn-primary { background: var(--kb-grad); color: #fff !important; border: 0; }
+
+/* 팝업: 담당자 선택 · [확인] */
+.kb-pop-assignee { align-items: center; flex-wrap: wrap; }
+.kb-assignee-name[role="button"] { cursor: pointer; border-block-end: 1px dashed var(--kb-line2); }
+.kb-assignee-name[role="button"]:hover { color: var(--kb-a); border-color: var(--kb-a2); }
+.kb-assign-btn { padding: 2px 9px; border-radius: 8px; border: 1px solid var(--kb-line2); background: var(--kb-surface); font: inherit; font-size: .72rem; font-weight: 700; color: var(--kb-a); cursor: pointer; }
+.kb-assign-btn:hover { border-color: var(--kb-a2); background: var(--kb-tint); }
+.kb-assign-select { min-inline-size: 160px; max-inline-size: 100%; block-size: 30px; border-radius: 8px; font-size: .8125rem; }
+.kb-pop-assignee.kb-changed b { color: var(--kb-a); }
+.kb-pop-foot .kb-pop-confirm { margin: 0; }
+.kb-pop-assignee.kb-editing .kb-assignee-name, .kb-pop-assignee.kb-editing .kb-assign-btn { display: none; }

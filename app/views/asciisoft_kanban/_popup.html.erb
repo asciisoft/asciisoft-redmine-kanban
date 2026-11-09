@@ -6,7 +6,20 @@
 <div class="kb-pop-attrs">
   <div><span><%= l(:field_status) %></span><b class="kb-pop-status"><%= @issue.status %></b></div>
   <div><span><%= l(:field_priority) %></span><b><%= @issue.priority %></b></div>
-  <div><span><%= l(:field_assigned_to) %></span><b><%= @issue.assigned_to || '-' %></b></div>
+  <div class="kb-pop-assignee"><span><%= l(:field_assigned_to) %></span>
+    <% if @can_change && @assignables.any? %>
+      <b class="kb-assignee-name" role="button" tabindex="0"><%= @issue.assigned_to || '-' %></b>
+      <button type="button" class="kb-assign-btn"><%= l(:label_asciisoft_kanban_select) %></button>
+      <select class="kb-assign-select" hidden>
+        <option value="0"<%= ' selected' unless @issue.assigned_to_id %>><%= l(:label_asciisoft_kanban_unassigned) %></option>
+        <% @assignables.each do |u| %>
+          <option value="<%= u.id %>"<%= ' selected' if u.id == @issue.assigned_to_id %>><%= u.name %></option>
+        <% end %>
+      </select>
+    <% else %>
+      <b><%= @issue.assigned_to || '-' %></b>
+    <% end %>
+  </div>
   <div><span><%= l(:field_author) %></span><b><%= @issue.author %></b></div>
   <div><span><%= l(:field_start_date) %></span><b><%= format_date(@issue.start_date) || '-' %></b></div>
   <div><span><%= l(:field_due_date) %></span><b><%= format_date(@issue.due_date) || '-' %></b></div>
@@ -23,7 +36,6 @@
         <button type="button" class="kb-pop-st<%= ' kb-cur' if s.id == @issue.status_id %>" data-status="<%= s.id %>" style="--kb-cc: <%= kb_status_color(s) %>"><%= s.name %></button>
       <% end %>
     </div>
-    <button type="button" class="kb-pop-confirm" disabled><%= l(:label_asciisoft_kanban_confirm) %></button>
   </div>
 <% end %>
 <% if @issue.description.present? %>
@@ -43,6 +55,9 @@
 <div class="kb-pop-foot">
   <%= link_to l(:label_asciisoft_kanban_open), issue_path(@issue), class: 'as-btn' %>
   <% if @issue.editable? %>
-    <%= link_to l(:button_edit), edit_issue_path(@issue), class: 'as-btn-primary kb-edit-btn' %>
+    <%= link_to l(:button_edit), edit_issue_path(@issue), class: 'as-btn kb-edit-btn' %>
+  <% end %>
+  <% if @can_change %>
+    <button type="button" class="kb-pop-confirm" data-status="<%= @issue.status_id %>" disabled><%= l(:label_asciisoft_kanban_confirm) %></button>
   <% end %>
 </div>

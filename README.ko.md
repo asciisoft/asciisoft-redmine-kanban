@@ -1,4 +1,4 @@
-# asciisoft_kanban (v1.5.0)
+# asciisoft_kanban (v1.6.0)
 
 [English](README.md)
 

@@ -19,4 +19,5 @@ en:
   text_asciisoft_kanban_settings_help: "Turn a status off to hide its column. Column headers turn red when the WIP limit is exceeded (leave empty for no limit)."
   label_asciisoft_kanban_all_cards: cards
   text_asciisoft_kanban_not_assignable: The issue cannot be assigned to this user.
-  label_asciisoft_kanban_confirm: Apply status
+  label_asciisoft_kanban_confirm: OK
+  label_asciisoft_kanban_select: Select

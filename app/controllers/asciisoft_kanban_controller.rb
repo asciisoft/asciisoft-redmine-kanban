@@ -61,7 +61,9 @@ class AsciisoftKanbanController < ApplicationController
   # 카드 상세 팝업
   def card
     @journals = @issue.journals.visible.where.not(notes: [nil, '']).order(created_on: :desc).limit(5).to_a.reverse
-    @allowed = status_changeable?(@issue) ? @issue.new_statuses_allowed_to(User.current) : []
+    @can_change = status_changeable?(@issue)
+    @allowed = @can_change ? @issue.new_statuses_allowed_to(User.current) : []
+    @assignables = @can_change ? @issue.assignable_users.to_a : []
     @actual_cf = actual_field
     @actual_value = @actual_cf && @issue.available_custom_fields.include?(@actual_cf) ? @issue.custom_field_value(@actual_cf).presence : nil
     render partial: 'asciisoft_kanban/popup', layout: false
@@ -90,9 +92,10 @@ class AsciisoftKanbanController < ApplicationController
       issue.status = status
       changed = true
     end
-    # 가로줄이 '담당자'일 때 다른 담당자 줄로 옮기면 담당자 변경
-    if params[:swimlane] == 'assignee' && (m = params[:lane].to_s.match(/\Aa(\d+)\z/))
-      aid = m[1].to_i
+    # 담당자 변경: 팝업에서 고른 경우(assigned_to_id) 또는 가로줄이 '담당자'일 때 다른 줄로 옮긴 경우
+    lane_match = params[:swimlane] == 'assignee' && params[:lane].to_s.match(/\Aa(\d+)\z/)
+    if params.key?(:assigned_to_id) || lane_match
+      aid = params.key?(:assigned_to_id) ? params[:assigned_to_id].to_i : lane_match[1].to_i
       aid = nil if aid.zero?
       if aid != issue.assigned_to_id
         if aid && issue.assignable_users.none? {|u| u.id == aid }
