@@ -14,16 +14,14 @@
   <div><span><%= l(:field_updated_on) %></span><b><%= format_time(@issue.updated_on) %></b></div>
 </div>
 <% if @allowed.any? %>
-  <div class="kb-pop-status-box">
-    <div class="kb-pop-status-label"><i></i><%= l(:label_asciisoft_kanban_change_status) %></div>
-    <div class="kb-pop-status-change">
-      <% @allowed.each do |s| %>
+  <div class="kb-pop-status-box" aria-label="<%= l(:label_asciisoft_kanban_change_status) %>">
+    <div class="kb-pop-steps">
+      <% @allowed.each_with_index do |s, i| %>
+        <% if i > 0 %><span class="kb-step-arrow" aria-hidden="true"></span><% end %>
         <button type="button" class="kb-pop-st<%= ' kb-cur' if s.id == @issue.status_id %>" data-status="<%= s.id %>" style="--kb-cc: <%= kb_status_color(s) %>"><%= s.name %></button>
       <% end %>
     </div>
-    <div class="kb-pop-status-actions">
-      <button type="button" class="kb-pop-confirm" disabled><%= l(:label_asciisoft_kanban_confirm) %></button>
-    </div>
+    <button type="button" class="kb-pop-confirm" disabled><%= l(:label_asciisoft_kanban_confirm) %></button>
   </div>
 <% end %>
 <% if @issue.description.present? %>

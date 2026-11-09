@@ -1,4 +1,4 @@
-# asciisoft_kanban (v1.3.0)
+# asciisoft_kanban (v1.4.0)
 
 [한국어](README.ko.md)
 
