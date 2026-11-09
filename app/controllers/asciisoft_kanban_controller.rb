@@ -64,6 +64,8 @@ class AsciisoftKanbanController < ApplicationController
     @can_change = status_changeable?(@issue)
     @allowed = @can_change ? @issue.new_statuses_allowed_to(User.current) : []
     @assignables = @can_change ? @issue.assignable_users.to_a : []
+    @can_due = @can_change && (User.current.admin? || @issue.safe_attribute?('due_date'))
+    @can_note = @can_change && User.current.allowed_to?(:add_issue_notes, @issue.project)
     @actual_cf = actual_field
     @actual_value = @actual_cf && @issue.available_custom_fields.include?(@actual_cf) ? @issue.custom_field_value(@actual_cf).presence : nil
     render partial: 'asciisoft_kanban/popup', layout: false
@@ -81,8 +83,28 @@ class AsciisoftKanbanController < ApplicationController
     return render_json_error(:not_found) unless issue
     return render_json_error(:forbidden) unless status_changeable?(issue)
 
-    issue.init_journal(User.current)
-    changed = false
+    notes = params[:notes].to_s.strip
+    if notes.present? && !User.current.allowed_to?(:add_issue_notes, issue.project)
+      return render_json_error(:forbidden, l(:notice_not_authorized))
+    end
+
+    issue.init_journal(User.current, notes)
+    changed = notes.present?
+    # 완료예정일 (빈 값이면 지움)
+    if params.key?(:due_date)
+      unless User.current.admin? || issue.safe_attribute?('due_date')
+        return render_json_error(:forbidden, l(:notice_not_authorized))
+      end
+
+      raw = params[:due_date].to_s.strip
+      due = raw.empty? ? nil : (Date.parse(raw) rescue :bad)
+      return render_json_error(:unprocessable_content, l('activerecord.errors.messages.not_a_date')) if due == :bad
+
+      if due != issue.due_date
+        issue.due_date = due
+        changed = true
+      end
+    end
     status = IssueStatus.find_by(id: params[:status_id])
     if status && status.id != issue.status_id
       unless issue.new_statuses_allowed_to(User.current).include?(status)

@@ -197,3 +197,20 @@ body.kb-dragging-on, body.kb-dragging-on * { cursor: grabbing !important; user-s
 .kb-pop-assignee.kb-changed b { color: var(--kb-a); }
 .kb-pop-foot .kb-pop-confirm { margin: 0; }
 .kb-pop-assignee.kb-editing .kb-assignee-name, .kb-pop-assignee.kb-editing .kb-assign-btn { display: none; }
+
+/* 팝업: 머리(X) 고정 · 정보 칸 줄 맞춤 · 완료예정일 입력 · 최근 댓글 · 댓글 입력 */
+.kb-popup { padding-block-start: 0; }
+.kb-pop-head { position: sticky; inset-block-start: 0; z-index: 3; background: var(--kb-surface); margin: 0 -22px; padding: 16px 22px 6px; }
+.kb-pop-attrs > div { display: flex; align-items: center; gap: 8px; min-block-size: 32px; }
+.kb-pop-attrs > div > span { flex-shrink: 0; }
+.kb-pop-assignee .kb-assign-btn { margin-inline-start: 2px; }
+.kb-due-input { block-size: 30px; border-radius: 8px; font-size: .8125rem; padding: 0 8px; border: 1px solid var(--kb-line2); background: var(--kb-surface); color: var(--kb-text); }
+.kb-pop-due.kb-changed .kb-due-input { border-color: var(--kb-a2); box-shadow: 0 0 0 2px var(--kb-tint2); }
+.kb-pop-comments { margin: 0; padding-block-start: 10px; }
+.kb-pop-sec { display: flex !important; align-items: center; gap: 7px; margin: 4px 0 8px !important; padding: 0 0 8px !important; border-block-end: 1px solid var(--kb-line) !important; font-size: .8125rem; font-weight: 800; color: var(--kb-text); }
+.kb-pop-sec i { inline-size: 8px; block-size: 8px; border-radius: 50%; background: var(--kb-grad); }
+.kb-pop-sec em { font-style: normal; font-size: .7rem; padding: 0 7px; border-radius: 999px; background: var(--kb-tint2); color: var(--kb-a); }
+.kb-pop-cmt { border-block-start: 0; padding: 8px 10px; margin: 0 0 6px; border-radius: 10px; background: var(--kb-bg); }
+.kb-pop-note { margin: 12px 0 0; }
+.kb-note { inline-size: 100%; box-sizing: border-box; border-radius: 12px; border: 1px solid var(--kb-line2); padding: 10px 12px; font: inherit; font-size: .8125rem; line-height: 1.5; resize: vertical; min-block-size: 64px; background: var(--kb-surface); color: var(--kb-text); }
+.kb-note:focus { outline: none; border-color: var(--kb-a2); box-shadow: 0 0 0 3px var(--kb-tint2); }

@@ -168,12 +168,21 @@
       if (card) openPopup(card.dataset.id);
     });
     if (popBg) {
-      var pend = { status: '', assignee: null };
+      var pend = { status: '', assignee: null, due: null, notes: '' };
       function syncConfirm() {
         var cf = $('.kb-pop-confirm', pop);
-        if (cf) cf.disabled = !(pend.status || pend.assignee !== null);
+        if (cf) cf.disabled = !(pend.status || pend.assignee !== null || pend.due !== null || pend.notes);
       }
+      popBg.addEventListener('input', function (e) {
+        if (e.target.classList && e.target.classList.contains('kb-note')) { pend.notes = e.target.value.trim(); syncConfirm(); }
+      });
       popBg.addEventListener('change', function (e) {
+        var di = e.target.closest && e.target.closest('.kb-due-input');
+        if (di) {
+          pend.due = di.value === (di.getAttribute('data-orig') || '') ? null : di.value;
+          di.closest('.kb-pop-due').classList.toggle('kb-changed', pend.due !== null);
+          syncConfirm(); return;
+        }
         var sel = e.target.closest && e.target.closest('.kb-assign-select');
         if (!sel) return;
         var row = sel.closest('.kb-pop-assignee'), nm = $('.kb-assignee-name', row);
@@ -207,6 +216,8 @@
         var sid = pend.status || ok.dataset.status || (card && card.dataset.status) || '';
         var data = { issue_id: id, status_id: sid };
         if (pend.assignee !== null) data.assigned_to_id = pend.assignee;
+        if (pend.due !== null) data.due_date = pend.due;
+        if (pend.notes) data.notes = pend.notes;
         var lane = card ? card.closest('.kb-lane') : null;
         var tcell = lane && pend.status ? $('.kb-cell[data-status="' + pend.status + '"]', lane) : null;
         if (tcell) data.order = $$('.kb-card', tcell).map(function (c) { return c.dataset.id; }).concat([id]);
@@ -228,7 +239,7 @@
         });
       });
       var _open = openPopup;
-      openPopup = function (id) { pend = { status: '', assignee: null }; _open(id); };
+      openPopup = function (id) { pend = { status: '', assignee: null, due: null, notes: '' }; _open(id); };
     }
     D.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePopup(); closeConfig(); } });
 

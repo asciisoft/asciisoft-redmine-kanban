@@ -22,7 +22,13 @@
   </div>
   <div><span><%= l(:field_author) %></span><b><%= @issue.author %></b></div>
   <div><span><%= l(:field_start_date) %></span><b><%= format_date(@issue.start_date) || '-' %></b></div>
-  <div><span><%= l(:field_due_date) %></span><b><%= format_date(@issue.due_date) || '-' %></b></div>
+  <div class="kb-pop-due"><span><%= l(:field_due_date) %></span>
+    <% if @can_due %>
+      <input type="date" class="kb-due-input" value="<%= @issue.due_date&.iso8601 %>" data-orig="<%= @issue.due_date&.iso8601 %>">
+    <% else %>
+      <b><%= format_date(@issue.due_date) || '-' %></b>
+    <% end %>
+  </div>
   <% if @actual_cf %>
   <div><span><%= @actual_cf.name %></span><b><%= @actual_value ? format_date((Date.parse(@actual_value.to_s) rescue nil)) || @actual_value : '-' %></b></div>
   <% end %>
@@ -43,13 +49,18 @@
 <% end %>
 <% if @journals.any? %>
   <div class="kb-pop-comments">
-    <h4><%= l(:label_asciisoft_kanban_recent_comments) %></h4>
+    <h4 class="kb-pop-sec"><i></i><%= l(:label_asciisoft_kanban_recent_comments) %><em><%= @journals.size %></em></h4>
     <% @journals.each do |j| %>
       <div class="kb-pop-cmt">
         <div class="kb-pop-cmt-head"><b><%= j.user %></b> <span><%= format_time(j.created_on) %></span></div>
         <div class="wiki"><%= textilizable j, :notes, object: @issue %></div>
       </div>
     <% end %>
+  </div>
+<% end %>
+<% if @can_note %>
+  <div class="kb-pop-note">
+    <textarea class="kb-note" rows="3" maxlength="4000" placeholder="<%= l(:label_asciisoft_kanban_note_placeholder) %>"></textarea>
   </div>
 <% end %>
 <div class="kb-pop-foot">

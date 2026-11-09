@@ -21,3 +21,4 @@ ko:
   text_asciisoft_kanban_not_assignable: 이 사용자에게는 담당자를 지정할 수 없습니다.
   label_asciisoft_kanban_confirm: 확인
   label_asciisoft_kanban_select: 선택
+  label_asciisoft_kanban_note_placeholder: 댓글 입력
