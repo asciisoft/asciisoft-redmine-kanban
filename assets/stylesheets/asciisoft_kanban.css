@@ -145,7 +145,7 @@ body.controller-asciisoft_kanban #query_form fieldset#options { display: none; }
 .kb-pop-st { padding: 4px 11px; border-radius: 999px; border: 1px solid var(--kb-line2); background: var(--kb-surface); cursor: pointer; font: inherit; font-size: .75rem; color: var(--kb-text); }
 .kb-pop-st:hover { border-color: var(--kb-a2); color: var(--kb-a); }
 .kb-pop-st.kb-cur { background: var(--kb-grad); color: #fff; border-color: transparent; }
-.kb-pop-desc { margin: 14px 0 0; font-size: .8125rem; }
+.kb-pop-desc { margin: 10px 0; font-size: .8125rem; }
 .kb-pop-comments { margin: 14px 0 0; }
 .kb-pop-comments h4 { margin: 0 0 8px; font-size: .8125rem; border: 0; }
 .kb-pop-cmt { padding: 8px 0; border-block-start: 1px solid var(--kb-line); font-size: .8125rem; }
