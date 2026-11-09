@@ -1,0 +1,43 @@
+<div class="kb-pop-head">
+  <span class="kb-pop-id">#<%= @issue.id %> · <%= @issue.tracker %></span>
+  <button type="button" class="kb-pop-close" aria-label="<%= l(:button_cancel) %>">&times;</button>
+</div>
+<h3 class="kb-pop-subject"><%= @issue.subject %></h3>
+<div class="kb-pop-attrs">
+  <div><span><%= l(:field_status) %></span><b class="kb-pop-status"><%= @issue.status %></b></div>
+  <div><span><%= l(:field_priority) %></span><b><%= @issue.priority %></b></div>
+  <div><span><%= l(:field_assigned_to) %></span><b><%= @issue.assigned_to || '-' %></b></div>
+  <div><span><%= l(:field_author) %></span><b><%= @issue.author %></b></div>
+  <div><span><%= l(:field_start_date) %></span><b><%= format_date(@issue.start_date) || '-' %></b></div>
+  <div><span><%= l(:field_due_date) %></span><b><%= format_date(@issue.due_date) || '-' %></b></div>
+  <div><span><%= l(:field_done_ratio) %></span><b><%= @issue.done_ratio %>%</b></div>
+  <div><span><%= l(:field_updated_on) %></span><b><%= format_time(@issue.updated_on) %></b></div>
+</div>
+<% if @allowed.any? %>
+  <div class="kb-pop-status-change">
+    <span><%= l(:label_asciisoft_kanban_change_status) %></span>
+    <% @allowed.each do |s| %>
+      <button type="button" class="kb-pop-st<%= ' kb-cur' if s.id == @issue.status_id %>" data-status="<%= s.id %>"><%= s.name %></button>
+    <% end %>
+  </div>
+<% end %>
+<% if @issue.description.present? %>
+  <div class="kb-pop-desc wiki"><%= textilizable @issue, :description, attachments: @issue.attachments %></div>
+<% end %>
+<% if @journals.any? %>
+  <div class="kb-pop-comments">
+    <h4><%= l(:label_asciisoft_kanban_recent_comments) %></h4>
+    <% @journals.each do |j| %>
+      <div class="kb-pop-cmt">
+        <div class="kb-pop-cmt-head"><b><%= j.user %></b> <span><%= format_time(j.created_on) %></span></div>
+        <div class="wiki"><%= textilizable j, :notes, object: @issue %></div>
+      </div>
+    <% end %>
+  </div>
+<% end %>
+<div class="kb-pop-foot">
+  <%= link_to l(:label_asciisoft_kanban_open), issue_path(@issue), class: 'as-btn' %>
+  <% if @issue.editable? %>
+    <%= link_to l(:button_edit), edit_issue_path(@issue), class: 'as-btn-primary' %>
+  <% end %>
+</div>

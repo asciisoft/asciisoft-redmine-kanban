@@ -1,0 +1,24 @@
+<% movable = status_changeable?(issue) %>
+<div class="kb-card<%= ' kb-is-closed' if issue.closed? %><%= ' kb-movable' if movable %> <%= issue.priority&.css_classes %>" data-id="<%= issue.id %>" data-status="<%= issue.status_id %>"<%= ' draggable="true"' if movable %>>
+  <span class="kb-chip"><%= issue.tracker %></span>
+  <div class="kb-subject"><%= issue.subject %></div>
+  <div class="kb-foot">
+    <%= link_to "##{issue.id}", issue_path(issue), class: 'kb-id' %>
+    <% if issue.priority %>
+      <span class="kb-pr <%= issue.priority.css_classes %>"><i></i><%= issue.priority.name %></span>
+    <% end %>
+    <span class="kb-icons">
+      <% if issue.due_date %>
+        <span class="kb-due<%= ' kb-overdue' if issue.overdue? %>" title="<%= l(:field_due_date) %>"><%= format_date(issue.due_date) %></span>
+      <% end %>
+      <% c = (@comment_counts || {})[issue.id].to_i %>
+      <% if c > 0 %><span class="kb-cmt" title="<%= l(:label_comment_plural) %>"><%= c %></span><% end %>
+      <% a = (@attach_counts || {})[issue.id].to_i %>
+      <% if a > 0 %><span class="kb-att" title="<%= l(:label_attachment_plural) %>"><%= a %></span><% end %>
+      <% if issue.assigned_to %>
+        <% av = avatar(issue.assigned_to, size: 22) %>
+        <span class="kb-assignee" title="<%= issue.assigned_to.name %>"><%= av.presence || content_tag(:span, issue.assigned_to.name.to_s[0], class: 'kb-av-init') %></span>
+      <% end %>
+    </span>
+  </div>
+</div>

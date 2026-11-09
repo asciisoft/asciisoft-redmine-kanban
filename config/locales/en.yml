@@ -1,0 +1,20 @@
+en:
+  label_asciisoft_kanban: Kanban
+  project_module_asciisoft_kanban: Kanban
+  permission_view_asciisoft_kanban: View kanban
+  label_asciisoft_kanban_swimlane: Swimlanes
+  label_asciisoft_kanban_unassigned: Unassigned
+  label_asciisoft_kanban_settings: Columns
+  label_asciisoft_kanban_show_col: Show
+  label_asciisoft_kanban_wip: WIP limit
+  label_asciisoft_kanban_total: "%{count} cards"
+  label_asciisoft_kanban_add_placeholder: "Type a subject and press Enter"
+  label_asciisoft_kanban_add_detail: More fields
+  label_asciisoft_kanban_change_status: Change status
+  label_asciisoft_kanban_recent_comments: Recent comments
+  label_asciisoft_kanban_open: Open
+  text_asciisoft_kanban_truncated: "Only the first %{count} cards are shown. Narrow the filters."
+  text_asciisoft_kanban_denied: The card cannot be moved to this status.
+  text_asciisoft_kanban_wip_over: WIP limit exceeded.
+  text_asciisoft_kanban_settings_help: "Turn a status off to hide its column. Column headers turn red when the WIP limit is exceeded (leave empty for no limit)."
+  label_asciisoft_kanban_all_cards: cards

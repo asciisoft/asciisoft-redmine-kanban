@@ -1,0 +1,122 @@
+<% content_for :header_tags do %>
+  <%= stylesheet_link_tag 'asciisoft_kanban', plugin: 'asciisoft_kanban' %>
+  <%= javascript_include_tag 'asciisoft_kanban', plugin: 'asciisoft_kanban', defer: true %>
+<% end %>
+
+<h2><%= l(:label_asciisoft_kanban) %></h2>
+
+<%= form_tag(project_asciisoft_kanban_path(@project), method: :get, id: 'query_form', class: 'kb-query') do %>
+  <%= hidden_field_tag 'swimlane', @swimlane, id: 'kb-swimlane-field' %>
+  <%= render partial: 'queries/query_form' %>
+<% end %>
+
+<div class="kb-toolbar">
+  <label for="kb-swimlane"><%= l(:label_asciisoft_kanban_swimlane) %></label>
+  <select id="kb-swimlane">
+    <% [['none', l(:label_none)], ['assignee', l(:field_assigned_to)], ['tracker', l(:field_tracker)], ['priority', l(:field_priority)]].each do |key, label| %>
+      <option value="<%= key %>"<%= ' selected' if @swimlane == key %>><%= label %></option>
+    <% end %>
+  </select>
+  <% if can_configure? %>
+    <button type="button" class="as-btn kb-config-open"><%= l(:label_asciisoft_kanban_settings) %></button>
+  <% end %>
+</div>
+
+<% if @truncated %>
+  <p class="warning kb-warn"><%= l(:text_asciisoft_kanban_truncated, count: AsciisoftKanbanController::LIMIT) %></p>
+<% end %>
+
+<% total = @issues.size %>
+<div class="kb-summary">
+  <b class="kb-sum-total"><%= total %></b><span class="kb-sum-label"><%= l(:label_asciisoft_kanban_all_cards) %></span>
+  <div class="kb-sum-bar">
+    <% @statuses.each do |s| %>
+      <% n = @issues.count {|i| i.status_id == s.id } %>
+      <i data-status="<%= s.id %>" style="width: <%= total.positive? ? (n * 100.0 / total).round(2) : 0 %>%; background: <%= kb_status_color(s) %>"></i>
+    <% end %>
+  </div>
+  <div class="kb-sum-legend">
+    <% @statuses.each do |s| %>
+      <span data-status="<%= s.id %>" style="--kb-cc: <%= kb_status_color(s) %>"><%= s.name %> <b><%= @issues.count {|i| i.status_id == s.id } %></b></span>
+    <% end %>
+  </div>
+</div>
+
+<div class="kb-board"
+     data-move-url="<%= asciisoft_kanban_move_path(@project) %>"
+     data-create-url="<%= asciisoft_kanban_create_issue_path(@project) %>"
+     data-card-url="<%= project_asciisoft_kanban_path(@project) %>/card/"
+     data-allowed-url="<%= project_asciisoft_kanban_path(@project) %>/allowed/"
+     data-swimlane="<%= @swimlane %>"
+     data-msg-denied="<%= l(:text_asciisoft_kanban_denied) %>"
+     data-msg-saved="<%= l(:notice_successful_update) %>"
+     data-msg-add="<%= l(:label_asciisoft_kanban_add_placeholder) %>"
+     data-msg-detail="<%= l(:label_asciisoft_kanban_add_detail) %>"
+     data-msg-wip="<%= l(:text_asciisoft_kanban_wip_over) %>">
+  <div class="kb-scroll">
+    <div class="kb-grid" style="--kb-cols: <%= @statuses.size %>">
+      <div class="kb-heads">
+        <% @statuses.each do |s| %>
+          <% count = @issues.count {|i| i.status_id == s.id } %>
+          <% limit = @limits[s.id] %>
+          <div class="kb-col-head<%= ' kb-over' if limit && count > limit %>" data-status="<%= s.id %>" data-wip="<%= limit %>" style="--kb-cc: <%= kb_status_color(s) %>">
+            <i class="kb-dot"></i>
+            <span class="kb-col-name"><%= s.name %></span>
+            <span class="kb-col-count"><b><%= count %></b><% if limit %><i>/<%= limit %></i><% end %></span>
+            <% if limit %><span class="kb-wipbar"><b style="width: <%= [count * 100 / limit, 100].min %>%"></b></span><% end %>
+            <% if @can_add %>
+              <button type="button" class="kb-add" data-status="<%= s.id %>" title="<%= l(:label_issue_new) %>">+</button>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+      <% @lanes.each do |lane| %>
+        <% if lane[:name] %>
+          <div class="kb-lane-title"><span><%= lane[:name] %></span><em><%= lane[:count] %></em></div>
+        <% end %>
+        <div class="kb-lane" data-lane="<%= lane[:key] %>">
+          <% @statuses.each do |s| %>
+            <div class="kb-cell<%= ' kb-closed-col' if s.is_closed? %>" data-status="<%= s.id %>" style="--kb-cc: <%= kb_status_color(s) %>">
+              <% lane[:cells][s.id].each do |issue| %>
+                <%= render partial: 'asciisoft_kanban/card', locals: {issue: issue} %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<% if can_configure? %>
+<div class="kb-modal-bg kb-config" hidden>
+  <div class="kb-modal kb-config-box" role="dialog">
+    <%= form_tag(asciisoft_kanban_settings_path(@project), method: :post) do %>
+      <%= hidden_field_tag 'swimlane', @swimlane, id: nil %>
+      <h3><%= l(:label_asciisoft_kanban_settings) %></h3>
+      <p class="kb-config-help"><%= l(:text_asciisoft_kanban_settings_help) %></p>
+      <table class="kb-config-table">
+        <thead><tr><th><%= l(:field_status) %></th><th><%= l(:label_asciisoft_kanban_show_col) %></th><th><%= l(:label_asciisoft_kanban_wip) %></th></tr></thead>
+        <tbody>
+        <% @all_statuses.each do |s| %>
+          <tr>
+            <td><%= s.name %></td>
+            <td><label class="kb-switch"><input type="checkbox" class="kb-show" value="<%= s.id %>"<%= ' checked' unless @hidden_ids.include?(s.id) %>><span></span></label>
+                <%= hidden_field_tag 'hidden[]', s.id, id: nil, class: 'kb-hidden', disabled: !@hidden_ids.include?(s.id) %></td>
+            <td><%= number_field_tag "wip[#{s.id}]", @limits[s.id], min: 0, max: 999, placeholder: '-', class: 'kb-wip-input', id: nil %></td>
+          </tr>
+        <% end %>
+        </tbody>
+      </table>
+      <p class="kb-config-buttons">
+        <%= submit_tag l(:button_save) %>
+        <button type="button" class="as-btn kb-config-close"><%= l(:button_cancel) %></button>
+      </p>
+    <% end %>
+  </div>
+</div>
+<% end %>
+
+<div class="kb-modal-bg kb-popup-bg" hidden><div class="kb-modal kb-popup" role="dialog"></div></div>
+
+<% html_title(l(:label_asciisoft_kanban)) -%>

@@ -1,0 +1,20 @@
+ko:
+  label_asciisoft_kanban: 칸반
+  project_module_asciisoft_kanban: 칸반
+  permission_view_asciisoft_kanban: 칸반 보기
+  label_asciisoft_kanban_swimlane: 가로줄
+  label_asciisoft_kanban_unassigned: 미지정
+  label_asciisoft_kanban_settings: 열 설정
+  label_asciisoft_kanban_show_col: 표시
+  label_asciisoft_kanban_wip: 최대 카드 수
+  label_asciisoft_kanban_total: "카드 %{count}개"
+  label_asciisoft_kanban_add_placeholder: "제목 입력 후 Enter"
+  label_asciisoft_kanban_add_detail: 자세히 입력
+  label_asciisoft_kanban_change_status: 상태 변경
+  label_asciisoft_kanban_recent_comments: 최근 댓글
+  label_asciisoft_kanban_open: 상세 보기
+  text_asciisoft_kanban_truncated: "카드가 많아 %{count}개까지만 표시합니다. 검색조건으로 범위를 좁혀 주세요."
+  text_asciisoft_kanban_denied: 이 상태로는 옮길 수 없습니다.
+  text_asciisoft_kanban_wip_over: 최대 카드 수를 넘었습니다.
+  text_asciisoft_kanban_settings_help: "끄면 그 상태의 열을 칸반에서 숨깁니다. 최대 카드 수를 넘으면 열 제목이 빨갛게 표시됩니다(비워 두면 제한 없음)."
+  label_asciisoft_kanban_all_cards: 전체 카드
