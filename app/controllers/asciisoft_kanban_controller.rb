@@ -11,7 +11,15 @@ class AsciisoftKanbanController < ApplicationController
   LIMIT = 500
   SWIMLANES = %w[none assignee tracker priority].freeze
 
-  helper_method :status_changeable?, :can_configure?, :kb_status_color
+  helper_method :status_changeable?, :can_configure?, :kb_status_color, :kb_priority_kind
+
+  # 우선순위 단계: 이름으로 정하고, 모르는 이름은 레드마인 순서(css 클래스)로
+  PRIORITY_KINDS = {
+    '긴급조치' => 'highest', '즉시' => 'highest', '긴급' => 'highest', 'immediate' => 'highest', 'urgent' => 'highest',
+    '높음' => 'high', 'high' => 'high', '중간' => 'default', '보통' => 'default', 'normal' => 'default',
+    '낮음' => 'low', 'low' => 'low', '매우낮음' => 'lowest', '매우 낮음' => 'lowest', 'lowest' => 'lowest'
+  }.freeze
+  PRIORITY_RANK = {'highest' => 5, 'high' => 4, 'default' => 3, 'low' => 2, 'lowest' => 1}.freeze
 
   STATUS_COLORS = {
     '신규등록' => '#4f7cc8', '신규' => '#4f7cc8', 'new' => '#4f7cc8',
@@ -69,23 +77,41 @@ class AsciisoftKanbanController < ApplicationController
     return render_json_error(:not_found) unless issue
     return render_json_error(:forbidden) unless status_changeable?(issue)
 
+    issue.init_journal(User.current)
+    changed = false
     status = IssueStatus.find_by(id: params[:status_id])
     if status && status.id != issue.status_id
       unless issue.new_statuses_allowed_to(User.current).include?(status)
         return render_json_error(:forbidden, l(:notice_not_authorized))
       end
 
-      issue.init_journal(User.current)
       issue.status = status
-      unless issue.save
-        return render json: {error: issue.errors.full_messages.join(', ')}, status: :unprocessable_content
+      changed = true
+    end
+    # 가로줄이 '담당자'일 때 다른 담당자 줄로 옮기면 담당자 변경
+    if params[:swimlane] == 'assignee' && (m = params[:lane].to_s.match(/\Aa(\d+)\z/))
+      aid = m[1].to_i
+      aid = nil if aid.zero?
+      if aid != issue.assigned_to_id
+        if aid && issue.assignable_users.none? {|u| u.id == aid }
+          return render_json_error(:forbidden, l(:text_asciisoft_kanban_not_assignable))
+        end
+
+        issue.assigned_to_id = aid
+        changed = true
       end
+    end
+    if changed && !issue.save
+      return render json: {error: issue.errors.full_messages.join(', ')}, status: :unprocessable_content
     end
 
     order = Array(params[:order]).map(&:to_i).select(&:positive?).first(LIMIT)
     visible = Issue.visible.where(id: order, project_id: project_ids).pluck(:id)
     AsciisoftKanbanPosition.save_order(order.select {|id| visible.include?(id) })
-    render json: {ok: true, id: issue.id, status: {id: issue.status_id, name: issue.status.name, closed: issue.closed?}}
+    @comment_counts = Journal.visible.where(journalized_type: 'Issue', journalized_id: issue.id).where.not(notes: [nil, '']).group(:journalized_id).count
+    @attach_counts = Attachment.where(container_type: 'Issue', container_id: issue.id).group(:container_id).count
+    html = changed ? render_to_string(partial: 'asciisoft_kanban/card', locals: {issue: issue.reload}, formats: [:html]) : nil
+    render json: {ok: true, id: issue.id, html: html, status: {id: issue.status_id, name: issue.status.name, closed: issue.closed?}}
   end
 
   # 열에서 바로 새 요청 추가 (제목만)
@@ -152,6 +178,23 @@ class AsciisoftKanbanController < ApplicationController
       (status.is_closed? ? '#8a94a6' : PALETTE[(status.position.to_i - 1) % PALETTE.size])
   end
 
+  def kb_priority_kind(priority)
+    return 'default' unless priority
+
+    PRIORITY_KINDS[priority.name.to_s.strip.downcase] || PRIORITY_KINDS[priority.name.to_s.strip] ||
+      case priority.css_classes.to_s
+      when /highest/ then 'highest'
+      when /high/ then 'high'
+      when /lowest/ then 'lowest'
+      when /low/ then 'low'
+      else 'default'
+      end
+  end
+
+  def priority_rank(priority)
+    PRIORITY_RANK[kb_priority_kind(priority)] || 3
+  end
+
   def can_configure?
     User.current.admin? || User.current.allowed_to?(:edit_project, @project)
   end
@@ -163,7 +206,7 @@ class AsciisoftKanbanController < ApplicationController
   def sort_cards(list)
     list.sort_by do |i|
       pos = @positions[i.id]
-      [pos ? 0 : 1, pos || 0, -(i.priority&.position || 0), -i.updated_on.to_i]
+      [pos ? 0 : 1, pos || 0, -priority_rank(i.priority), -i.updated_on.to_i]
     end
   end
 
@@ -178,7 +221,7 @@ class AsciisoftKanbanController < ApplicationController
         issues.group_by(&:tracker).sort_by {|t, _| t&.position || 0 }
               .map {|t, list| ["t#{t&.id}", t&.name.to_s, list] }
       when 'priority'
-        issues.group_by(&:priority).sort_by {|p, _| -(p&.position || 0) }
+        issues.group_by(&:priority).sort_by {|p, _| [-priority_rank(p), p&.position || 0] }
               .map {|p, list| ["p#{p&.id}", p&.name.to_s, list] }
       else
         [['all', nil, issues]]

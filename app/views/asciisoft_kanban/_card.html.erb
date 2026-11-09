@@ -1,11 +1,11 @@
 <% movable = status_changeable?(issue) %>
-<div class="kb-card<%= ' kb-is-closed' if issue.closed? %><%= ' kb-movable' if movable %> <%= issue.priority&.css_classes %>" data-id="<%= issue.id %>" data-status="<%= issue.status_id %>"<%= ' draggable="true"' if movable %>>
+<div class="kb-card<%= ' kb-is-closed' if issue.closed? %><%= ' kb-movable' if movable %> kb-p-<%= kb_priority_kind(issue.priority) %>" data-id="<%= issue.id %>" data-status="<%= issue.status_id %>">
   <span class="kb-chip"><%= issue.tracker %></span>
   <div class="kb-subject"><%= issue.subject %></div>
   <div class="kb-foot">
     <%= link_to "##{issue.id}", issue_path(issue), class: 'kb-id' %>
     <% if issue.priority %>
-      <span class="kb-pr <%= issue.priority.css_classes %>"><i></i><%= issue.priority.name %></span>
+      <span class="kb-pr"><i></i><%= issue.priority.name %></span>
     <% end %>
     <span class="kb-icons">
       <% if issue.due_date %>

@@ -42,22 +42,24 @@
         var lim = parseInt(h.dataset.wip || '0', 10);
         var wb = $('.kb-wipbar b', h); if (wb && lim) wb.style.width = Math.min(100, n * 100 / lim) + '%';
         var over = lim > 0 && n > lim;
+        $$('.kb-lane', board).forEach(function (ln) { var t = ln.previousElementSibling; if (t && t.classList.contains('kb-lane-title')) { var em = $('em', t); if (em) em.textContent = $$('.kb-card', ln).length; } });
         if (over && !h.classList.contains('kb-over')) toast(board.dataset.msgWip, true);
         h.classList.toggle('kb-over', over);
       });
     }
 
-    /* ---- 끌어 놓기 ---- */
-    var drag = null;
+    /* ---- 끌어 놓기 (마우스 · 펜) ---- */
+    var SWIM = board.dataset.swimlane || 'none';
+    var pd = null, justDragged = false;
     function laneOf(el) { var l = el.closest('.kb-lane'); return l ? l.dataset.lane : ''; }
+    function laneOk(card, cell) { return SWIM === 'assignee' || laneOf(card) === laneOf(cell); }
     function clearMarks() { $$('.kb-cell', board).forEach(function (c) { c.classList.remove('kb-allowed', 'kb-denied', 'kb-hover'); }); $$('.kb-placeholder', board).forEach(function (p) { p.remove(); }); }
+    function cellOk(card, cell, ids) {
+      if (!laneOk(card, cell)) return false;
+      return cell.dataset.status === card.dataset.status || (ids || []).indexOf(parseInt(cell.dataset.status, 10)) > -1;
+    }
     function markCells(card, ids) {
-      var lane = laneOf(card), cur = card.dataset.status;
-      $$('.kb-cell', board).forEach(function (c) {
-        if (laneOf(c) !== lane) { c.classList.add('kb-denied'); return; }
-        var ok = c.dataset.status === cur || ids.indexOf(parseInt(c.dataset.status, 10)) > -1;
-        c.classList.add(ok ? 'kb-allowed' : 'kb-denied');
-      });
+      $$('.kb-cell', board).forEach(function (c) { c.classList.add(cellOk(card, c, ids) ? 'kb-allowed' : 'kb-denied'); });
     }
     function allowed(id) {
       if (allowedCache[id]) return Promise.resolve(allowedCache[id]);
@@ -70,70 +72,85 @@
       cards.forEach(function (c) { var r = c.getBoundingClientRect(), o = y - r.top - r.height / 2; if (o < 0 && o > off) { off = o; best = c; } });
       return best;
     }
-    board.addEventListener('dragstart', function (e) {
-      var card = e.target.closest && e.target.closest('.kb-card.kb-movable');
-      if (!card) return;
-      drag = { card: card, from: card.parentNode, next: card.nextSibling, ids: null };
-      card.classList.add('kb-dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', card.dataset.id); } catch (er) { }
-      allowed(card.dataset.id).then(function (ids) { if (drag && drag.card === card) { drag.ids = ids; markCells(card, ids); } });
-    });
-    board.addEventListener('dragend', function () {
-      if (drag) drag.card.classList.remove('kb-dragging');
-      clearMarks(); drag = null;
-    });
-    board.addEventListener('dragover', function (e) {
-      if (!drag) return;
-      var cell = e.target.closest && e.target.closest('.kb-cell');
-      if (!cell || cell.classList.contains('kb-denied')) return;
-      if (laneOf(cell) !== laneOf(drag.card)) return;
-      e.preventDefault();
+    function startDrag(x, y) {
+      var card = pd.card, r = card.getBoundingClientRect();
+      pd.started = true; pd.dx = x - r.left; pd.dy = y - r.top;
+      pd.from = card.parentNode; pd.next = card.nextSibling; pd.oldStatus = card.dataset.status; pd.oldLane = laneOf(card);
+      var g = card.cloneNode(true); g.classList.add('kb-ghost'); g.style.width = r.width + 'px';
+      D.body.appendChild(g); pd.ghost = g;
+      card.classList.add('kb-dragging'); D.body.classList.add('kb-dragging-on');
+      var c0 = card;
+      allowed(card.dataset.id).then(function (ids) { if (pd && pd.card === c0) { pd.ids = ids; markCells(c0, ids); } });
+      moveDrag(x, y);
+    }
+    function moveDrag(x, y) {
+      pd.ghost.style.left = (x - pd.dx) + 'px'; pd.ghost.style.top = (y - pd.dy) + 'px';
+      // 가장자리에 닿으면 자동 스크롤
+      var sc = $('.kb-scroll', board), sr = sc.getBoundingClientRect();
+      if (x > sr.right - 40) sc.scrollLeft += 18; else if (x < sr.left + 40) sc.scrollLeft -= 18;
+      if (y > W.innerHeight - 40) W.scrollBy(0, 18); else if (y < 40) W.scrollBy(0, -18);
+      var under = D.elementFromPoint(x, y), cell = under && under.closest && under.closest('.kb-cell');
       $$('.kb-cell.kb-hover', board).forEach(function (c) { if (c !== cell) c.classList.remove('kb-hover'); });
-      cell.classList.add('kb-hover');
-      var ph = $('.kb-placeholder', board) || Object.assign(D.createElement('div'), { className: 'kb-placeholder' });
-      var after = afterEl(cell, e.clientY);
-      if (after) cell.insertBefore(ph, after); else cell.appendChild(ph);
-    });
-    board.addEventListener('drop', function (e) {
-      if (!drag) return;
-      var cell = e.target.closest && e.target.closest('.kb-cell');
       var ph = $('.kb-placeholder', board);
-      if (!cell || cell.classList.contains('kb-denied') || !ph) { clearMarks(); return; }
-      e.preventDefault();
-      var card = drag.card, from = drag.from, next = drag.next, oldStatus = card.dataset.status, d = drag;
-      var phNext = ph.nextSibling;
-      clearMarks(); drag = null;
+      if (!cell || !board.contains(cell) || (pd.ids && !cellOk(pd.card, cell, pd.ids)) || !laneOk(pd.card, cell)) { if (ph) ph.remove(); return; }
+      cell.classList.add('kb-hover');
+      ph = ph || Object.assign(D.createElement('div'), { className: 'kb-placeholder' });
+      var after = afterEl(cell, y);
+      if (after) cell.insertBefore(ph, after); else cell.appendChild(ph);
+    }
+    function endDrag() {
+      var d = pd, card = d.card, ph = $('.kb-placeholder', board);
+      var cell = ph ? ph.parentNode : null, before = ph ? ph.nextSibling : null;
+      d.ghost.remove(); D.body.classList.remove('kb-dragging-on'); card.classList.remove('kb-dragging');
+      clearMarks();
+      justDragged = true; setTimeout(function () { justDragged = false; }, 50);
+      if (!cell) return;
       (d.ids ? Promise.resolve(d.ids) : allowed(card.dataset.id)).then(function (ids) {
-        var target = cell.dataset.status;
-        if (target !== oldStatus && ids.indexOf(parseInt(target, 10)) < 0) { card.classList.remove('kb-dragging'); toast(board.dataset.msgDenied, true); return; }
-        finishDrop(card, cell, phNext && phNext.parentNode === cell ? phNext : null, from, next, oldStatus);
+        if (!cellOk(card, cell, ids)) { toast(board.dataset.msgDenied, true); return; }
+        if (cell === d.from && (before === card || before === card.nextSibling)) return;   // 제자리
+        finishDrop(card, cell, before && before.parentNode === cell ? before : null, d);
       });
-    });
-    function finishDrop(card, cell, before, from, next, oldStatus) {
+    }
+    function finishDrop(card, cell, before, d) {
       cell.insertBefore(card, before);
-      card.classList.remove('kb-dragging');
-      var newStatus = cell.dataset.status;
+      var newStatus = cell.dataset.status, newLane = laneOf(cell);
       card.dataset.status = newStatus;
       var order = $$('.kb-card', cell).map(function (c) { return c.dataset.id; });
       refreshCounts();
-      post(URL_MOVE, { issue_id: card.dataset.id, status_id: newStatus, order: order }).then(function (res) {
+      post(URL_MOVE, { issue_id: card.dataset.id, status_id: newStatus, order: order, swimlane: SWIM, lane: newLane }).then(function (res) {
         if (!res.ok) {
-          from.insertBefore(card, next && next.parentNode === from ? next : null);  // 되돌리기
-          card.dataset.status = oldStatus; refreshCounts();
+          d.from.insertBefore(card, d.next && d.next.parentNode === d.from ? d.next : null);  // 되돌리기
+          card.dataset.status = d.oldStatus; refreshCounts();
           toast(res.j.error || board.dataset.msgDenied, true);
           return;
         }
         delete allowedCache[card.dataset.id];
-        card.classList.toggle('kb-is-closed', !!(res.j.status && res.j.status.closed));
-        if (newStatus !== oldStatus) toast(board.dataset.msgSaved);
+        if (res.j.html) {
+          var tmp = D.createElement('div'); tmp.innerHTML = res.j.html.trim();
+          var fresh = tmp.firstElementChild; if (fresh) { card.replaceWith(fresh); card = fresh; }
+        } else card.classList.toggle('kb-is-closed', !!(res.j.status && res.j.status.closed));
+        if (newStatus !== d.oldStatus || newLane !== d.oldLane) toast(board.dataset.msgSaved);
       });
     }
-    // 끌기 전에 옮길 수 있는 상태를 미리 받아 둡니다
     board.addEventListener('pointerdown', function (e) {
-      var card = e.target.closest && e.target.closest('.kb-card.kb-movable');
-      if (card) allowed(card.dataset.id);
+      if (e.pointerType === 'touch' || e.button !== 0) return;          // 휴대폰은 카드 팝업의 상태 버튼 사용
+      if (e.target.closest('a, button, input, textarea, select')) return;
+      var card = e.target.closest('.kb-card.kb-movable');
+      if (!card) return;
+      allowed(card.dataset.id);
+      pd = { card: card, x: e.clientX, y: e.clientY, started: false };
     });
+    D.addEventListener('pointermove', function (e) {
+      if (!pd) return;
+      if (!pd.started) { if (Math.hypot(e.clientX - pd.x, e.clientY - pd.y) > 6) startDrag(e.clientX, e.clientY); return; }
+      e.preventDefault(); moveDrag(e.clientX, e.clientY);
+    });
+    D.addEventListener('pointerup', function () { if (pd && pd.started) endDrag(); pd = null; });
+    D.addEventListener('pointercancel', function () {
+      if (pd && pd.started) { pd.ghost.remove(); pd.card.classList.remove('kb-dragging'); D.body.classList.remove('kb-dragging-on'); clearMarks(); }
+      pd = null;
+    });
+    board.addEventListener('dragstart', function (e) { if (e.target.closest && e.target.closest('.kb-card')) e.preventDefault(); });
 
     /* ---- 상세 팝업 ---- */
     var popBg = $('.kb-popup-bg'), pop = popBg && $('.kb-popup', popBg);
@@ -146,7 +163,7 @@
     }
     function closePopup() { if (popBg) { popBg.hidden = true; pop.innerHTML = ''; } }
     board.addEventListener('click', function (e) {
-      if (e.target.closest('a, button, input')) return;
+      if (justDragged || e.target.closest('a, button, input')) return;
       var card = e.target.closest('.kb-card');
       if (card) openPopup(card.dataset.id);
     });
@@ -154,15 +171,28 @@
       popBg.addEventListener('click', function (e) {
         if (e.target === popBg || e.target.closest('.kb-pop-close')) { closePopup(); return; }
         var st = e.target.closest('.kb-pop-st');
-        if (!st || st.classList.contains('kb-cur')) return;
-        var id = pop.dataset.id, card = $('.kb-card[data-id="' + id + '"]', board);
+        if (st) {                                                     // 상태를 고르기만 하고, [확인]을 눌러야 반영
+          $$('.kb-pop-st', pop).forEach(function (b) { b.classList.remove('kb-sel'); });
+          var same = st.classList.contains('kb-cur');
+          if (!same) st.classList.add('kb-sel');
+          pop.dataset.pending = same ? '' : st.dataset.status;
+          var cf = $('.kb-pop-confirm', pop); if (cf) cf.disabled = same;
+          return;
+        }
+        var ok = e.target.closest('.kb-pop-confirm');
+        if (!ok || ok.disabled || !pop.dataset.pending) return;
+        var sid = pop.dataset.pending, id = pop.dataset.id, card = $('.kb-card[data-id="' + id + '"]', board);
         var lane = card ? card.closest('.kb-lane') : null;
-        var cell = lane ? $('.kb-cell[data-status="' + st.dataset.status + '"]', lane) : null;
+        var cell = lane ? $('.kb-cell[data-status="' + sid + '"]', lane) : null;
         var order = cell ? $$('.kb-card', cell).map(function (c) { return c.dataset.id; }).concat([id]) : [id];
-        post(URL_MOVE, { issue_id: id, status_id: st.dataset.status, order: order }).then(function (res) {
-          if (!res.ok) { toast(res.j.error || board.dataset.msgDenied, true); return; }
-          if (card && cell) { cell.appendChild(card); card.dataset.status = st.dataset.status; card.classList.toggle('kb-is-closed', !!res.j.status.closed); }
-          else if (card) card.remove();                     // 숨긴 열로 옮긴 경우
+        ok.disabled = true;
+        post(URL_MOVE, { issue_id: id, status_id: sid, order: order }).then(function (res) {
+          if (!res.ok) { ok.disabled = false; toast(res.j.error || board.dataset.msgDenied, true); return; }
+          if (card && cell) {
+            cell.appendChild(card); card.dataset.status = sid;
+            if (res.j.html) { var tmp = D.createElement('div'); tmp.innerHTML = res.j.html.trim(); var fresh = tmp.firstElementChild; if (fresh) card.replaceWith(fresh); }
+            else card.classList.toggle('kb-is-closed', !!res.j.status.closed);
+          } else if (card) card.remove();                       // 숨긴 열로 옮긴 경우
           delete allowedCache[id]; refreshCounts(); toast(board.dataset.msgSaved);
           openPopup(id);
         });
@@ -205,6 +235,15 @@
       });
       input.addEventListener('blur', function () { setTimeout(function () { if (!input.value.trim() && box.parentNode) box.remove(); }, 200); });
     });
+
+    /* ---- 가로줄 · 열 설정: 테마의 [검색조건] 버튼이 있으면 그 오른쪽으로 ---- */
+    var tools = $('.kb-tools');
+    function placeTools() {
+      var r = $('.as-toolbar-r');
+      if (tools && r && !r.contains(tools)) { r.appendChild(tools); return true; }
+      return !!(r && r.contains(tools));
+    }
+    if (!placeTools()) { var tries = 0, iv = setInterval(function () { if (placeTools() || ++tries > 20) clearInterval(iv); }, 150); }
 
     /* ---- 스윔레인 선택 ---- */
     var sel = $('#kb-swimlane');

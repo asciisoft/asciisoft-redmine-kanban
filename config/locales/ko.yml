@@ -18,3 +18,5 @@ ko:
   text_asciisoft_kanban_wip_over: 최대 카드 수를 넘었습니다.
   text_asciisoft_kanban_settings_help: "끄면 그 상태의 열을 칸반에서 숨깁니다. 최대 카드 수를 넘으면 열 제목이 빨갛게 표시됩니다(비워 두면 제한 없음)."
   label_asciisoft_kanban_all_cards: 전체 카드
+  text_asciisoft_kanban_not_assignable: 이 사용자에게는 담당자를 지정할 수 없습니다.
+  label_asciisoft_kanban_confirm: 확인

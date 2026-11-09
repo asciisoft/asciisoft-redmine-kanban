@@ -1,4 +1,4 @@
-# asciisoft_kanban (v1.1.0)
+# asciisoft_kanban (v1.3.0)
 
 [한국어](README.ko.md)
 
@@ -6,7 +6,8 @@ A Kanban board plugin for Redmine 7.0. It shows a project's issues as cards in s
 
 ## Features
 - One column per issue status, with a tinted column area and a color per status
-- Drag a card to another column to change its status (follows the workflow; only **administrators and the assignee** can move a card)
+- Drag a card with the mouse to another column to change its status (follows the workflow; only **administrators and the assignee** can move a card)
+- With assignee swimlanes, drag a card to another assignee row to change the assignee
 - Card order inside a column is saved
 - Swimlanes: none / assignee / tracker / priority (choose on the screen)
 - Per-column WIP limit (the column header turns red when exceeded)

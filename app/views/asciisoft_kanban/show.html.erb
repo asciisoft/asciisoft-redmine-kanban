@@ -10,7 +10,7 @@
   <%= render partial: 'queries/query_form' %>
 <% end %>
 
-<div class="kb-toolbar">
+<div class="kb-tools">
   <label for="kb-swimlane"><%= l(:label_asciisoft_kanban_swimlane) %></label>
   <select id="kb-swimlane">
     <% [['none', l(:label_none)], ['assignee', l(:field_assigned_to)], ['tracker', l(:field_tracker)], ['priority', l(:field_priority)]].each do |key, label| %>

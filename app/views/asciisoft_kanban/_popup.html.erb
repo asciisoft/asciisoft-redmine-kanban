@@ -14,11 +14,16 @@
   <div><span><%= l(:field_updated_on) %></span><b><%= format_time(@issue.updated_on) %></b></div>
 </div>
 <% if @allowed.any? %>
-  <div class="kb-pop-status-change">
-    <span><%= l(:label_asciisoft_kanban_change_status) %></span>
-    <% @allowed.each do |s| %>
-      <button type="button" class="kb-pop-st<%= ' kb-cur' if s.id == @issue.status_id %>" data-status="<%= s.id %>"><%= s.name %></button>
-    <% end %>
+  <div class="kb-pop-status-box">
+    <div class="kb-pop-status-label"><i></i><%= l(:label_asciisoft_kanban_change_status) %></div>
+    <div class="kb-pop-status-change">
+      <% @allowed.each do |s| %>
+        <button type="button" class="kb-pop-st<%= ' kb-cur' if s.id == @issue.status_id %>" data-status="<%= s.id %>" style="--kb-cc: <%= kb_status_color(s) %>"><%= s.name %></button>
+      <% end %>
+    </div>
+    <div class="kb-pop-status-actions">
+      <button type="button" class="kb-pop-confirm" disabled><%= l(:label_asciisoft_kanban_confirm) %></button>
+    </div>
   </div>
 <% end %>
 <% if @issue.description.present? %>
@@ -38,6 +43,6 @@
 <div class="kb-pop-foot">
   <%= link_to l(:label_asciisoft_kanban_open), issue_path(@issue), class: 'as-btn' %>
   <% if @issue.editable? %>
-    <%= link_to l(:button_edit), edit_issue_path(@issue), class: 'as-btn-primary' %>
+    <%= link_to l(:button_edit), edit_issue_path(@issue), class: 'as-btn-primary kb-edit-btn' %>
   <% end %>
 </div>
