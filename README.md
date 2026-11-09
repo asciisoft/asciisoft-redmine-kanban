@@ -1,37 +1,77 @@
-# ASCII SOFT Kanban (Redmine 7 plugin)
+# asciisoft_kanban (v1.1.0)
 
-요청을 상태별 열로 보여주는 칸반보드입니다.
+[한국어](README.ko.md)
 
-## 기능
-- 상태별 열, 카드를 끌어 놓아 상태 변경 (업무흐름 기준, **관리자와 작업자(담당자 · 담당 그룹 구성원)만**)
-- 열 안 카드 순서 저장
-- 가로줄(스윔레인): 없음 · 담당자 · 유형 · 우선순위 (화면에서 선택, 브라우저에 기억)
-- 열별 최대 카드 수(WIP) 표시, 넘으면 열 제목이 빨갛게 표시
-- 프로젝트별 열 숨김 (열 설정 — 관리자 · 프로젝트 관리 권한)
-- 카드 클릭 시 상세 팝업 (속성, 설명, 최근 댓글 5개, 상태 변경 버튼)
-- 열 머리의 [+]로 제목만 입력해 새 요청 추가 (필수 항목이 있으면 '자세히 입력' 링크)
-- 요청 목록과 같은 검색조건 사용, 카드는 최대 500개 표시
-- 터치 화면처럼 끌기가 어려운 환경에서는 카드 팝업의 상태 버튼으로 변경
+A Kanban board plugin for Redmine 7.0. It shows a project's issues as cards in status columns.
 
-## 설치 (Docker compose 기준)
-폴더 이름은 반드시 `asciisoft_kanban`입니다.
+## Features
+- One column per issue status, with a tinted column area and a color per status
+- Drag a card to another column to change its status (follows the workflow; only **administrators and the assignee** can move a card)
+- Card order inside a column is saved
+- Swimlanes: none / assignee / tracker / priority (choose on the screen)
+- Per-column WIP limit (the column header turns red when exceeded)
+- Hide columns per project (Columns button — administrators and users with the "Edit project" permission)
+- Click a card to open a detail popup (attributes, description, recent comments, status buttons)
+- Add an issue from a column with the **+** button (subject only)
+- Uses the same filters as the issue list; up to 500 cards are shown
+- Priority color on the card's left border, status summary bar on top
+
+## Requirements
+- Redmine **7.0 or later**
+
+## Install with git
+The plugin folder name **must be `asciisoft_kanban`**.
 
 ```bash
-cd /srv/redmine
-git clone https://github.com/asciisoft/asciisoft-redmine-kanban.git plugins/asciisoft_kanban
-docker compose restart redmine     # REDMINE_PLUGINS_MIGRATE=true 이면 DB 테이블 2개가 자동 생성
+cd /path/to/redmine/plugins
+git clone https://github.com/asciisoft/asciisoft-redmine-kanban.git asciisoft_kanban
+cd ..
+bundle exec rake redmine:plugins:migrate RAILS_ENV=production
+# then restart Redmine (Puma, Passenger, ...)
 ```
 
-마이그레이션이 자동으로 되지 않는 환경이면:
-`docker compose exec redmine bundle exec rake redmine:plugins:migrate NAME=asciisoft_kanban RAILS_ENV=production`
+### Docker (official `redmine` image)
+Mount the plugins folder in `compose.yaml`, for example `./plugins:/usr/src/redmine/plugins`, and then:
 
-## 사용 설정
-1. 관리 > 역할 및 권한: 칸반을 볼 역할에 **칸반 보기** 권한을 체크합니다.
-2. 프로젝트 > 설정 > 모듈: **칸반**을 체크하면 프로젝트 메뉴의 '요청' 옆에 '칸반' 탭이 생깁니다.
-
-## 제거
 ```bash
-docker compose exec redmine bundle exec rake redmine:plugins:migrate NAME=asciisoft_kanban VERSION=0 RAILS_ENV=production
-rm -rf plugins/asciisoft_kanban
+cd /path/to/compose
+git clone https://github.com/asciisoft/asciisoft-redmine-kanban.git plugins/asciisoft_kanban
 docker compose restart redmine
 ```
+
+The two database tables are created automatically when `REDMINE_PLUGINS_MIGRATE: "true"` is set. Otherwise run:
+
+```bash
+docker compose exec redmine bundle exec rake redmine:plugins:migrate NAME=asciisoft_kanban RAILS_ENV=production
+```
+
+### Private repository
+If the repository is private, `git clone` asks for credentials. Use your GitHub user name and a **fine-grained personal access token** (Contents: read-only) as the password.
+
+## Set up
+1. **Administration → Roles and permissions**: check **View kanban** for the roles that may use it.
+2. **Project → Settings → Modules**: check **Kanban**. A "Kanban" tab appears in the project menu.
+
+## Update
+```bash
+cd /path/to/redmine/plugins/asciisoft_kanban
+git pull --ff-only
+cd ../..
+bundle exec rake redmine:plugins:migrate RAILS_ENV=production
+# restart Redmine
+```
+
+## Uninstall
+```bash
+cd /path/to/redmine
+bundle exec rake redmine:plugins:migrate NAME=asciisoft_kanban VERSION=0 RAILS_ENV=production
+rm -rf plugins/asciisoft_kanban
+# restart Redmine
+```
+
+## Notes
+- The look follows the ASCII SOFT theme variables when the theme is installed, and uses default blue colors otherwise.
+- Profile photos on cards use Redmine's `avatar` helper, so they follow Gravatar or an avatar plugin such as `asciisoft_redmine_avatar`.
+
+## License
+GNU General Public License v2.0 — see [LICENSE](LICENSE).
